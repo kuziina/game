@@ -14,6 +14,11 @@ export class GameScene extends Phaser.Scene {
   private resultMenu!: ResultMenu;
   private state: GameState = 'playing';
   private level = 1;
+  private phase = 1;
+  private phase2Timer = 0;
+  private phaseBarBg!: Phaser.GameObjects.Rectangle;
+  private phaseBarFill!: Phaser.GameObjects.Rectangle;
+  private phaseTimerText!: Phaser.GameObjects.Text;
   private pauseOverlay!: Phaser.GameObjects.Rectangle;
   private pausePanel!: Phaser.GameObjects.Rectangle;
   private pauseTitle!: Phaser.GameObjects.Text;
@@ -95,6 +100,34 @@ export class GameScene extends Phaser.Scene {
       .setDepth(7)
       .setVisible(false);
 
+    this.phase = 1;
+    this.phase2Timer = this.gameConfig.phase2Time * 1000;
+
+    const barY = height - 24;
+    const barHeight = 8;
+    const barWidth = width - 40;
+
+    this.phaseBarBg = this.add
+      .rectangle(width / 2, barY, barWidth, barHeight, 0x1e293b)
+      .setOrigin(0.5)
+      .setDepth(2);
+
+    this.phaseBarFill = this.add
+      .rectangle(20, barY, barWidth, barHeight, 0x3b82f6)
+      .setOrigin(0, 0.5)
+      .setDepth(3);
+
+    this.phaseTimerText = this.add
+      .text(width / 2, barY - 18, '', {
+        fontFamily,
+        fontSize: '16px',
+        color: '#93c5fd',
+      })
+      .setOrigin(0.5)
+      .setDepth(2);
+
+    this.updatePhaseBar();
+
     this.input.keyboard?.on('keydown-ESC', () => this.togglePause());
 
     this.generateLevel(this.level);
@@ -103,11 +136,23 @@ export class GameScene extends Phaser.Scene {
   update(_time: number, delta: number): void {
     if (this.state !== 'playing') return;
 
-    const speed = this.gameConfig.baseSpeed + (this.level - 1) * this.gameConfig.speedPerLevel;
+    if (this.phase === 1) {
+      this.phase2Timer -= delta;
+      if (this.phase2Timer <= 0) {
+        this.phase2Timer = 0;
+        this.startPhase2();
+      }
+      this.updatePhaseBar();
+    }
+
+    const speed =
+      (this.gameConfig.baseSpeed + (this.level - 1) * this.gameConfig.speedPerLevel) *
+      (this.phase === 2 ? this.gameConfig.phase2SpeedMultiplier : 1);
     const { playfield, candidateRadius } = this.gameConfig;
+    const radius = candidateRadius * (this.phase === 2 ? this.gameConfig.phase2RadiusMultiplier : 1);
 
     for (const candidate of this.candidates) {
-      candidate.update(delta, speed, playfield, candidateRadius);
+      candidate.update(delta, speed, playfield, radius);
     }
   }
 
@@ -120,6 +165,8 @@ export class GameScene extends Phaser.Scene {
     this.candidates = [];
 
     const { totalLevels, candidateCount, candidateRadius, playfield, maxDelta, minDelta } = this.gameConfig;
+    const radius = candidateRadius * (this.phase === 2 ? this.gameConfig.phase2RadiusMultiplier : 1);
+    const count = candidateCount + (this.phase === 2 ? this.gameConfig.phase2ExtraCandidates : 0);
 
     this.levelText.setText(`Уровень ${level} / ${totalLevels}`);
 
@@ -129,15 +176,15 @@ export class GameScene extends Phaser.Scene {
     const progress = (level - 1) / (totalLevels - 1);
     const delta = maxDelta - (maxDelta - minDelta) * progress;
 
-    for (let i = 0; i < candidateCount; i += 1) {
+    for (let i = 0; i < count; i += 1) {
       const correct = i === 0;
       const color = correct ? base : shiftHsl(base, delta);
 
       const candidate = new Candidate(
         this,
-        Phaser.Math.Between(playfield.left + candidateRadius, playfield.right - candidateRadius),
-        Phaser.Math.Between(playfield.top + candidateRadius, playfield.bottom - candidateRadius),
-        candidateRadius,
+        Phaser.Math.Between(playfield.left + radius, playfield.right - radius),
+        Phaser.Math.Between(playfield.top + radius, playfield.bottom - radius),
+        radius,
         hslToColor(color),
         correct,
         (item) => this.handleCandidate(item),
@@ -145,6 +192,42 @@ export class GameScene extends Phaser.Scene {
 
       this.candidates.push(candidate);
     }
+  }
+
+  private updatePhaseBar(): void {
+    const total = this.gameConfig.phase2Time * 1000;
+    const ratio = Math.max(0, this.phase2Timer / total);
+
+    this.phaseBarFill.setDisplaySize(this.phaseBarBg.width * ratio, this.phaseBarBg.height);
+    this.phaseTimerText.setText(`До фазы 2: ${Math.ceil(this.phase2Timer / 1000)}с`);
+  }
+
+  private startPhase2(): void {
+    this.phase = 2;
+    this.phaseBarFill.setFillStyle(0xf59e0b);
+    this.phaseBarFill.setDisplaySize(this.phaseBarBg.width, this.phaseBarBg.height);
+    this.phaseTimerText.setText('Фаза 2 активна');
+
+    this.generateLevel(this.level);
+
+    const banner = this.add
+      .text(this.scale.width / 2, this.scale.height / 2, 'ФАЗА 2 НАЧАЛАСЬ!', {
+        fontFamily: this.gameConfig.fontFamily,
+        fontSize: '48px',
+        color: '#f59e0b',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5)
+      .setDepth(10);
+
+    this.tweens.add({
+      targets: banner,
+      alpha: 0,
+      y: this.scale.height / 2 - 40,
+      duration: 2000,
+      ease: 'Sine.easeOut',
+      onComplete: () => banner.destroy(),
+    });
   }
 
   private handleCandidate(candidate: Candidate): void {

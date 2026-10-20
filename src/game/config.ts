@@ -12,6 +12,12 @@ export interface GameConfig {
   minDelta: number;
   playfield: { left: number; right: number; top: number; bottom: number };
 
+  // Фазы
+  phase2Time: number;
+  phase2SpeedMultiplier: number;
+  phase2RadiusMultiplier: number;
+  phase2ExtraCandidates: number;
+
   // Интерфейс
   fontFamily: string;
   title: { text: string; y: number; fontSize: string; color: string };
@@ -60,9 +66,15 @@ export function createGame(parent: string): Phaser.Game {
     candidateRadius: 28,
     baseSpeed: 85,
     speedPerLevel: 15,
-    maxDelta: 0.1,
+    maxDelta: 0.2,
     minDelta: 0.05,
     playfield: { left: 45, right: 915, top: 215, bottom: 545 },
+
+    // Фазы
+    phase2Time: 15,
+    phase2SpeedMultiplier: 1.2,
+    phase2RadiusMultiplier: 0.8,
+    phase2ExtraCandidates: 2,
 
     // Интерфейс
     fontFamily: 'system-ui, sans-serif',
