@@ -15,7 +15,7 @@ export class GameScene extends Phaser.Scene {
   private state: GameState = 'playing';
   private level = 1;
   private phase = 1;
-  private phase2Timer = 0;
+  // private phase2Timer = 0; // таймер по времени (заменён переходом по уровню)
   private phaseBarBg!: Phaser.GameObjects.Rectangle;
   private phaseBarFill!: Phaser.GameObjects.Rectangle;
   private phaseTimerText!: Phaser.GameObjects.Text;
@@ -101,7 +101,7 @@ export class GameScene extends Phaser.Scene {
       .setVisible(false);
 
     this.phase = 1;
-    this.phase2Timer = this.gameConfig.phase2Time * 1000;
+    // this.phase2Timer = this.gameConfig.phase2Time * 1000; // таймер по времени (заменён переходом по уровню)
 
     const barY = height - 24;
     const barHeight = 8;
@@ -126,7 +126,7 @@ export class GameScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setDepth(2);
 
-    this.updatePhaseBar();
+    // this.updatePhaseBar(); // вызывается внутри generateLevel
 
     this.input.keyboard?.on('keydown-ESC', () => this.togglePause());
 
@@ -136,14 +136,15 @@ export class GameScene extends Phaser.Scene {
   update(_time: number, delta: number): void {
     if (this.state !== 'playing') return;
 
-    if (this.phase === 1) {
-      this.phase2Timer -= delta;
-      if (this.phase2Timer <= 0) {
-        this.phase2Timer = 0;
-        this.startPhase2();
-      }
-      this.updatePhaseBar();
-    }
+    // Переход по времени (заменён переходом по уровню):
+    // if (this.phase === 1) {
+    //   this.phase2Timer -= delta;
+    //   if (this.phase2Timer <= 0) {
+    //     this.phase2Timer = 0;
+    //     this.startPhase2();
+    //   }
+    //   this.updatePhaseBar();
+    // }
 
     const speed =
       (this.gameConfig.baseSpeed + (this.level - 1) * this.gameConfig.speedPerLevel) *
@@ -192,21 +193,33 @@ export class GameScene extends Phaser.Scene {
 
       this.candidates.push(candidate);
     }
+
+    this.updatePhaseBar();
   }
 
   private updatePhaseBar(): void {
-    const total = this.gameConfig.phase2Time * 1000;
-    const ratio = Math.max(0, this.phase2Timer / total);
+    if (this.phase === 2) {
+      this.phaseBarBg.setVisible(false);
+      this.phaseBarFill.setVisible(false);
+      this.phaseTimerText.setVisible(false);
+      return;
+    }
 
+    const { phase2Level } = this.gameConfig;
+    const ratio = Math.min(1, (this.level - 1) / (phase2Level - 1));
     this.phaseBarFill.setDisplaySize(this.phaseBarBg.width * ratio, this.phaseBarBg.height);
-    this.phaseTimerText.setText(`До фазы 2: ${Math.ceil(this.phase2Timer / 1000)}с`);
+    this.phaseTimerText.setText(`До фазы 2: ${phase2Level - this.level} ур.`);
+
+    // Старый вариант (по времени):
+    // const total = this.gameConfig.phase2Time * 1000;
+    // const ratio = Math.max(0, this.phase2Timer / total);
+    // this.phaseBarFill.setDisplaySize(this.phaseBarBg.width * ratio, this.phaseBarBg.height);
+    // this.phaseTimerText.setText(`До фазы 2: ${Math.ceil(this.phase2Timer / 1000)}с`);
   }
 
   private startPhase2(): void {
     this.phase = 2;
-    this.phaseBarFill.setFillStyle(0xf59e0b);
-    this.phaseBarFill.setDisplaySize(this.phaseBarBg.width, this.phaseBarBg.height);
-    this.phaseTimerText.setText('Фаза 2 активна');
+    this.updatePhaseBar();
 
     this.generateLevel(this.level);
 
@@ -240,7 +253,11 @@ export class GameScene extends Phaser.Scene {
         this.finish('Победа!', `Все ${totalLevels} уровней пройдены!`, resultScreen.winColor);
       } else {
         this.level += 1;
-        this.generateLevel(this.level);
+        if (this.phase === 1 && this.level >= this.gameConfig.phase2Level) {
+          this.startPhase2();
+        } else {
+          this.generateLevel(this.level);
+        }
       }
     } else {
       this.finish('Поражение', `Неверный оттенок на уровне ${this.level}.`, resultScreen.loseColor);

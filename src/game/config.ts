@@ -13,7 +13,7 @@ export interface GameConfig {
   playfield: { left: number; right: number; top: number; bottom: number };
 
   // Фазы
-  phase2Time: number;
+  phase2Level: number;
   phase2SpeedMultiplier: number;
   phase2RadiusMultiplier: number;
   phase2ExtraCandidates: number;
@@ -71,7 +71,7 @@ export function createGame(parent: string): Phaser.Game {
     playfield: { left: 45, right: 915, top: 215, bottom: 545 },
 
     // Фазы
-    phase2Time: 15,
+    phase2Level: 5,
     phase2SpeedMultiplier: 1.2,
     phase2RadiusMultiplier: 0.8,
     phase2ExtraCandidates: 2,
