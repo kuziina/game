@@ -4,7 +4,7 @@ import { randomHsl, hslToColor, shiftHsl } from './utils/color';
 import { Candidate } from './objects/Candidate';
 import { ResultMenu } from './ui/ResultMenu';
 
-type GameState = 'playing' | 'won' | 'lost';
+type GameState = 'playing' | 'paused' | 'won' | 'lost';
 
 export class GameScene extends Phaser.Scene {
   private readonly gameConfig: GameConfig;
@@ -14,6 +14,10 @@ export class GameScene extends Phaser.Scene {
   private resultMenu!: ResultMenu;
   private state: GameState = 'playing';
   private level = 1;
+  private pauseOverlay!: Phaser.GameObjects.Rectangle;
+  private pausePanel!: Phaser.GameObjects.Rectangle;
+  private pauseTitle!: Phaser.GameObjects.Text;
+  private pauseHint!: Phaser.GameObjects.Text;
 
   constructor(gameConfig: GameConfig) {
     super('GameScene');
@@ -24,8 +28,8 @@ export class GameScene extends Phaser.Scene {
     this.level = 1;
     this.state = 'playing';
 
-    const { width } = this.scale;
-    const { fontFamily, title, target, hint, levelText } = this.gameConfig;
+    const { width, height } = this.scale;
+    const { fontFamily, title, target, hint, levelText, overlay, pauseScreen } = this.gameConfig;
 
     this.add
       .text(width / 2, title.y, title.text, {
@@ -52,6 +56,46 @@ export class GameScene extends Phaser.Scene {
     });
 
     this.resultMenu = new ResultMenu(this, this.gameConfig, () => this.scene.restart());
+
+    this.pauseOverlay = this.add
+      .rectangle(width / 2, height / 2, width, height, overlay.color, overlay.alpha)
+      .setDepth(5)
+      .setVisible(false);
+
+    this.pausePanel = this.add
+      .rectangle(
+        width / 2,
+        height / 2,
+        pauseScreen.panel.width,
+        pauseScreen.panel.height,
+        pauseScreen.panel.color,
+        pauseScreen.panel.alpha,
+      )
+      .setStrokeStyle(pauseScreen.panel.strokeWidth, pauseScreen.panel.strokeColor, 1)
+      .setDepth(6)
+      .setVisible(false);
+
+    this.pauseTitle = this.add
+      .text(width / 2, height / 2 - 34, pauseScreen.title, {
+        fontFamily,
+        fontSize: pauseScreen.titleFontSize,
+        color: pauseScreen.titleColor,
+      })
+      .setOrigin(0.5)
+      .setDepth(7)
+      .setVisible(false);
+
+    this.pauseHint = this.add
+      .text(width / 2, height / 2 + 46, pauseScreen.hint, {
+        fontFamily,
+        fontSize: pauseScreen.hintFontSize,
+        color: pauseScreen.hintColor,
+      })
+      .setOrigin(0.5)
+      .setDepth(7)
+      .setVisible(false);
+
+    this.input.keyboard?.on('keydown-ESC', () => this.togglePause());
 
     this.generateLevel(this.level);
   }
@@ -117,6 +161,32 @@ export class GameScene extends Phaser.Scene {
       }
     } else {
       this.finish('Поражение', `Неверный оттенок на уровне ${this.level}.`, resultScreen.loseColor);
+    }
+  }
+
+  private togglePause(): void {
+    if (this.state === 'playing') {
+      this.state = 'paused';
+      this.pauseOverlay.setVisible(true);
+      this.pausePanel.setVisible(true);
+      this.pauseTitle.setVisible(true);
+      this.pauseHint.setVisible(true);
+
+      this.pausePanel.setAlpha(0);
+      this.pauseTitle.setAlpha(0);
+      this.pauseHint.setAlpha(0);
+      this.tweens.add({
+        targets: [this.pausePanel, this.pauseTitle, this.pauseHint],
+        alpha: 1,
+        duration: 200,
+        ease: 'Sine.easeOut',
+      });
+    } else if (this.state === 'paused') {
+      this.state = 'playing';
+      this.pauseOverlay.setVisible(false);
+      this.pausePanel.setVisible(false);
+      this.pauseTitle.setVisible(false);
+      this.pauseHint.setVisible(false);
     }
   }
 

@@ -19,6 +19,23 @@ export interface GameConfig {
   hint: { text: string; y: number; fontSize: string; color: string };
   levelText: { x: number; y: number; fontSize: string; color: string };
   overlay: { color: number; alpha: number };
+  pauseScreen: {
+    title: string;
+    titleFontSize: string;
+    titleColor: string;
+    hint: string;
+    hintFontSize: string;
+    hintColor: string;
+    panel: {
+      width: number;
+      height: number;
+      color: number;
+      alpha: number;
+      radius: number;
+      strokeColor: number;
+      strokeWidth: number;
+    };
+  };
   resultScreen: {
     titleOffsetY: number;
     titleFontSize: string;
@@ -75,6 +92,23 @@ export function createGame(parent: string): Phaser.Game {
     overlay: {
       color: 0x0f172a,
       alpha: 0.85,
+    },
+    pauseScreen: {
+      title: 'ПАУЗА',
+      titleFontSize: '64px',
+      titleColor: '#ffffff',
+      hint: 'Нажмите ESC, чтобы продолжить',
+      hintFontSize: '24px',
+      hintColor: '#cbd5e1',
+      panel: {
+        width: 440,
+        height: 240,
+        color: 0x1e293b,
+        alpha: 0.95,
+        radius: 20,
+        strokeColor: 0x334155,
+        strokeWidth: 2,
+      },
     },
     resultScreen: {
       titleOffsetY: -60,
