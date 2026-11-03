@@ -11,10 +11,12 @@ export class GameScene extends Phaser.Scene {
   private candidates: Candidate[] = [];
   private target!: Phaser.GameObjects.Arc;
   private levelText!: Phaser.GameObjects.Text;
+  private livesText!: Phaser.GameObjects.Text;
   private resultMenu!: ResultMenu;
   private state: GameState = 'playing';
   private level = 1;
   private phase = 1;
+  private lives = 3;
   // private phase2Timer = 0; // таймер по времени (заменён переходом по уровню)
   private phaseBarBg!: Phaser.GameObjects.Rectangle;
   private phaseBarFill!: Phaser.GameObjects.Rectangle;
@@ -31,6 +33,8 @@ export class GameScene extends Phaser.Scene {
 
   create(): void {
     this.level = 1;
+    this.phase = 1;
+    this.lives = this.gameConfig.maxWrongAttempts;
     this.state = 'playing';
 
     const { width, height } = this.scale;
@@ -59,6 +63,14 @@ export class GameScene extends Phaser.Scene {
       fontSize: levelText.fontSize,
       color: levelText.color,
     });
+
+    this.livesText = this.add
+      .text(width - levelText.x, levelText.y, '', {
+        fontFamily,
+        fontSize: levelText.fontSize,
+        color: levelText.color,
+      })
+      .setOrigin(1, 0);
 
     this.resultMenu = new ResultMenu(this, this.gameConfig, () => this.scene.restart());
 
@@ -170,6 +182,7 @@ export class GameScene extends Phaser.Scene {
     const count = candidateCount + (this.phase === 2 ? this.gameConfig.phase2ExtraCandidates : 0);
 
     this.levelText.setText(`Уровень ${level} / ${totalLevels}`);
+    this.updateLivesText();
 
     const base = randomHsl();
     this.target.setFillStyle(hslToColor(base));
@@ -260,7 +273,22 @@ export class GameScene extends Phaser.Scene {
         }
       }
     } else {
-      this.finish('Поражение', `Неверный оттенок на уровне ${this.level}.`, resultScreen.loseColor);
+      this.lives -= 1;
+
+      this.updateLivesText();
+
+      if (this.lives <= 0) {
+        this.finish('Поражение', `Неверный оттенок на уровне ${this.level}.`, resultScreen.loseColor);
+        return;
+      }
+
+      this.updateLivesText();
+      this.tweens.add({
+        targets: this.livesText,
+        scale: { from: 1.4, to: 1 },
+        duration: 250,
+        ease: 'Sine.easeOut',
+      });
     }
   }
 
@@ -288,6 +316,10 @@ export class GameScene extends Phaser.Scene {
       this.pauseTitle.setVisible(false);
       this.pauseHint.setVisible(false);
     }
+  }
+
+  private updateLivesText(): void {
+    this.livesText.setText(`Попытки: ${'❤'.repeat(Math.max(0, this.lives))}`);
   }
 
   private finish(title: string, message: string, color: string): void {

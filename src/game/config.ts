@@ -12,6 +12,9 @@ export interface GameConfig {
   minDelta: number;
   playfield: { left: number; right: number; top: number; bottom: number };
 
+  // Попытки
+  maxWrongAttempts: number;
+
   // Фазы
   phase2Level: number;
   phase2SpeedMultiplier: number;
@@ -63,12 +66,15 @@ export function createGame(parent: string): Phaser.Game {
     // Геймплей
     totalLevels: 10,
     candidateCount: 4,
-    candidateRadius: 28,
+    candidateRadius: 35,
     baseSpeed: 85,
     speedPerLevel: 15,
     maxDelta: 0.2,
     minDelta: 0.05,
     playfield: { left: 45, right: 915, top: 215, bottom: 545 },
+
+    // Попытки
+    maxWrongAttempts: 3,
 
     // Фазы
     phase2Level: 5,
