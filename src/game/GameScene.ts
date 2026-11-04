@@ -126,7 +126,6 @@ export class GameScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setDepth(2);
 
-    // this.updatePhaseBar(); // вызывается внутри generateLevel
 
     this.input.keyboard?.on('keydown-ESC', () => this.togglePause());
 
